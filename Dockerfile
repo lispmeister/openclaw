@@ -87,6 +87,9 @@ RUN if [ -n "$OPENCLAW_DOCKER_APT_PACKAGES" ]; then \
       rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*; \
     fi
 
+# Install ClawHub CLI for skill management (search, install, update, publish)
+RUN npm i -g clawhub
+
 # Copy built artifacts from builder with correct ownership
 COPY --from=builder --chown=node:node /app/dist /app/dist
 COPY --from=builder --chown=node:node /app/node_modules /app/node_modules
