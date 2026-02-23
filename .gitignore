@@ -85,6 +85,12 @@ USER.md
 .tgz
 .idea
 
+# claude
+.claude/
+
+# wyoming protocol plugin
+wyoming-openclaw/
+
 # local tooling
 .serena/
 
