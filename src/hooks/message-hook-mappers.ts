@@ -8,7 +8,9 @@ import type {
 import type {
   MessagePreprocessedHookContext,
   MessageReceivedHookContext,
+  MessageResponseReadyHookContext,
   MessageSentHookContext,
+  MessageSubmitHookContext,
   MessageTranscribedHookContext,
 } from "./internal-hooks.js";
 
@@ -252,6 +254,39 @@ function toInternalInboundMessageHookContextBase(canonical: CanonicalInboundMess
     surface: canonical.surface,
     mediaPath: canonical.mediaPath,
     mediaType: canonical.mediaType,
+  };
+}
+
+export function toInternalMessageSubmitContext(
+  canonical: CanonicalInboundMessageHookContext,
+  cfg: OpenClawConfig,
+  sessionId?: string,
+): MessageSubmitHookContext & { cfg: OpenClawConfig } {
+  return {
+    ...toInternalMessagePreprocessedContext(canonical, cfg),
+    sessionId,
+  };
+}
+
+export function toInternalMessageResponseReadyContext(params: {
+  content: string;
+  sessionKey?: string;
+  sessionId?: string;
+  provider?: string;
+  model?: string;
+  usage?: { input?: number; output?: number; total?: number };
+  durationMs?: number;
+  channelId?: string;
+}): MessageResponseReadyHookContext {
+  return {
+    content: params.content,
+    sessionKey: params.sessionKey,
+    sessionId: params.sessionId,
+    provider: params.provider,
+    model: params.model,
+    usage: params.usage,
+    durationMs: params.durationMs,
+    channelId: params.channelId,
   };
 }
 

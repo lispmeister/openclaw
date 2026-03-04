@@ -156,6 +156,42 @@ export type MessagePreprocessedHookEvent = InternalHookEvent & {
   context: MessagePreprocessedHookContext;
 };
 
+export type MessageSubmitHookContext = MessagePreprocessedHookContext & {
+  /** Agent session ID, if available */
+  sessionId?: string;
+};
+
+export type MessageSubmitHookEvent = InternalHookEvent & {
+  type: "message";
+  action: "submit";
+  context: MessageSubmitHookContext;
+};
+
+export type MessageResponseReadyHookContext = {
+  /** The full response text (all payloads joined) */
+  content: string;
+  /** Session key */
+  sessionKey?: string;
+  /** Agent session ID */
+  sessionId?: string;
+  /** Provider used */
+  provider?: string;
+  /** Model used */
+  model?: string;
+  /** Token usage */
+  usage?: { input?: number; output?: number; total?: number };
+  /** How long the agent took in ms */
+  durationMs?: number;
+  /** Channel identifier */
+  channelId?: string;
+};
+
+export type MessageResponseReadyHookEvent = InternalHookEvent & {
+  type: "message";
+  action: "response-ready";
+  context: MessageResponseReadyHookContext;
+};
+
 export interface InternalHookEvent {
   /** The type of event (command, session, agent, gateway, etc.) */
   type: InternalHookEventType;
@@ -418,4 +454,28 @@ export function isMessagePreprocessedEvent(
     return false;
   }
   return hasStringContextField(context, "channelId");
+}
+
+export function isMessageSubmitEvent(event: InternalHookEvent): event is MessageSubmitHookEvent {
+  if (!isHookEventTypeAndAction(event, "message", "submit")) {
+    return false;
+  }
+  const context = getHookContext<MessageSubmitHookContext>(event);
+  if (!context) {
+    return false;
+  }
+  return hasStringContextField(context, "channelId");
+}
+
+export function isMessageResponseReadyEvent(
+  event: InternalHookEvent,
+): event is MessageResponseReadyHookEvent {
+  if (!isHookEventTypeAndAction(event, "message", "response-ready")) {
+    return false;
+  }
+  const context = getHookContext<MessageResponseReadyHookContext>(event);
+  if (!context) {
+    return false;
+  }
+  return hasStringContextField(context, "content");
 }

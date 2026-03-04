@@ -15,6 +15,9 @@ import {
   updateSessionStoreEntry,
 } from "../../config/sessions.js";
 import type { TypingMode } from "../../config/types.js";
+import { fireAndForgetHook } from "../../hooks/fire-and-forget.js";
+import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
+import { toInternalMessageResponseReadyContext } from "../../hooks/message-hook-mappers.js";
 import { emitAgentEvent } from "../../infra/agent-events.js";
 import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
 import { generateSecureUuid } from "../../infra/secure-random.js";
@@ -700,6 +703,32 @@ export async function runReplyAgent(params: {
     if (responseUsageLine) {
       finalPayloads = appendUsageLine(finalPayloads, responseUsageLine);
     }
+
+    fireAndForgetHook(
+      triggerInternalHook(
+        createInternalHookEvent(
+          "message",
+          "response-ready",
+          sessionKey ?? "",
+          toInternalMessageResponseReadyContext({
+            content: finalPayloads
+              .map((p) => ("text" in p ? (p.text ?? "") : ""))
+              .filter(Boolean)
+              .join("\n"),
+            sessionKey,
+            sessionId: cliSessionId,
+            provider: providerUsed,
+            model: modelUsed,
+            usage: usage
+              ? { input: usage.input, output: usage.output, total: usage.total }
+              : undefined,
+            durationMs: Date.now() - runStartedAt,
+            channelId: (followupRun.originatingChannel ?? followupRun.run.provider) || undefined,
+          }),
+        ),
+      ),
+      "agent-runner: message:response-ready hook failed",
+    );
 
     return finalizeWithFollowup(
       finalPayloads.length === 1 ? finalPayloads[0] : finalPayloads,

@@ -6,7 +6,9 @@ import {
   deriveInboundMessageHookContext,
   toInternalMessagePreprocessedContext,
   toInternalMessageReceivedContext,
+  toInternalMessageResponseReadyContext,
   toInternalMessageSentContext,
+  toInternalMessageSubmitContext,
   toInternalMessageTranscribedContext,
   toPluginMessageContext,
   toPluginMessageReceivedEvent,
@@ -112,6 +114,54 @@ describe("message hook mappers", () => {
     expect(preprocessed.isGroup).toBe(true);
     expect(preprocessed.groupId).toBe("telegram:chat:456");
     expect(preprocessed.cfg).toBe(cfg);
+  });
+
+  it("toInternalMessageSubmitContext matches preprocessed context plus sessionId", () => {
+    const cfg = {} as OpenClawConfig;
+    const canonical = deriveInboundMessageHookContext(makeInboundCtx());
+    const submit = toInternalMessageSubmitContext(canonical, cfg, "session-abc");
+    const preprocessed = toInternalMessagePreprocessedContext(canonical, cfg);
+
+    expect(submit.channelId).toBe(preprocessed.channelId);
+    expect(submit.from).toBe(preprocessed.from);
+    expect(submit.bodyForAgent).toBe(preprocessed.bodyForAgent);
+    expect(submit.sessionId).toBe("session-abc");
+  });
+
+  it("toInternalMessageSubmitContext works without sessionId", () => {
+    const cfg = {} as OpenClawConfig;
+    const canonical = deriveInboundMessageHookContext(makeInboundCtx());
+    const submit = toInternalMessageSubmitContext(canonical, cfg);
+    expect(submit.sessionId).toBeUndefined();
+  });
+
+  it("toInternalMessageResponseReadyContext maps all fields", () => {
+    const ctx = toInternalMessageResponseReadyContext({
+      content: "Hello there",
+      sessionKey: "sk-1",
+      sessionId: "sess-1",
+      provider: "anthropic",
+      model: "claude-opus-4-6",
+      usage: { input: 100, output: 50, total: 150 },
+      durationMs: 800,
+      channelId: "telegram",
+    });
+
+    expect(ctx.content).toBe("Hello there");
+    expect(ctx.sessionKey).toBe("sk-1");
+    expect(ctx.sessionId).toBe("sess-1");
+    expect(ctx.provider).toBe("anthropic");
+    expect(ctx.model).toBe("claude-opus-4-6");
+    expect(ctx.usage).toEqual({ input: 100, output: 50, total: 150 });
+    expect(ctx.durationMs).toBe(800);
+    expect(ctx.channelId).toBe("telegram");
+  });
+
+  it("toInternalMessageResponseReadyContext works with minimal params", () => {
+    const ctx = toInternalMessageResponseReadyContext({ content: "hi" });
+    expect(ctx.content).toBe("hi");
+    expect(ctx.provider).toBeUndefined();
+    expect(ctx.usage).toBeUndefined();
   });
 
   it("maps sent context consistently for plugin/internal hooks", () => {

@@ -6,14 +6,18 @@ import {
   isAgentBootstrapEvent,
   isGatewayStartupEvent,
   isMessageReceivedEvent,
+  isMessageResponseReadyEvent,
   isMessageSentEvent,
+  isMessageSubmitEvent,
   registerInternalHook,
   triggerInternalHook,
   unregisterInternalHook,
   type AgentBootstrapHookContext,
   type GatewayStartupHookContext,
   type MessageReceivedHookContext,
+  type MessageResponseReadyHookContext,
   type MessageSentHookContext,
+  type MessageSubmitHookContext,
 } from "./internal-hooks.js";
 
 describe("hooks", () => {
@@ -317,6 +321,92 @@ describe("hooks", () => {
     for (const testCase of cases) {
       it(testCase.name, () => {
         expect(isMessageSentEvent(testCase.event)).toBe(testCase.expected);
+      });
+    }
+  });
+
+  describe("isMessageSubmitEvent", () => {
+    const cases: Array<{
+      name: string;
+      event: ReturnType<typeof createInternalHookEvent>;
+      expected: boolean;
+    }> = [
+      {
+        name: "returns true for message:submit with channelId",
+        event: createInternalHookEvent("message", "submit", "test-session", {
+          channelId: "telegram",
+        } satisfies MessageSubmitHookContext),
+        expected: true,
+      },
+      {
+        name: "returns false for message:preprocessed events",
+        event: createInternalHookEvent("message", "preprocessed", "test-session", {
+          channelId: "telegram",
+        }),
+        expected: false,
+      },
+      {
+        name: "returns false when channelId is missing",
+        event: createInternalHookEvent("message", "submit", "test-session", {}),
+        expected: false,
+      },
+    ];
+
+    for (const testCase of cases) {
+      it(testCase.name, () => {
+        expect(isMessageSubmitEvent(testCase.event)).toBe(testCase.expected);
+      });
+    }
+  });
+
+  describe("isMessageResponseReadyEvent", () => {
+    const cases: Array<{
+      name: string;
+      event: ReturnType<typeof createInternalHookEvent>;
+      expected: boolean;
+    }> = [
+      {
+        name: "returns true for message:response-ready with content",
+        event: createInternalHookEvent("message", "response-ready", "test-session", {
+          content: "Hello from agent",
+        } satisfies MessageResponseReadyHookContext),
+        expected: true,
+      },
+      {
+        name: "returns true with full context",
+        event: createInternalHookEvent("message", "response-ready", "test-session", {
+          content: "Hi there",
+          sessionKey: "sk",
+          provider: "anthropic",
+          model: "claude-opus-4-6",
+          usage: { input: 100, output: 50, total: 150 },
+          durationMs: 1234,
+          channelId: "telegram",
+        } satisfies MessageResponseReadyHookContext),
+        expected: true,
+      },
+      {
+        name: "returns false for message:sent events",
+        event: createInternalHookEvent("message", "sent", "test-session", {
+          to: "+1234567890",
+          content: "Hello",
+          success: true,
+          channelId: "telegram",
+        }),
+        expected: false,
+      },
+      {
+        name: "returns false when content is missing",
+        event: createInternalHookEvent("message", "response-ready", "test-session", {
+          channelId: "telegram",
+        }),
+        expected: false,
+      },
+    ];
+
+    for (const testCase of cases) {
+      it(testCase.name, () => {
+        expect(isMessageResponseReadyEvent(testCase.event)).toBe(testCase.expected);
       });
     }
   });

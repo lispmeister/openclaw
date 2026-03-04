@@ -4,6 +4,7 @@ import { createInternalHookEvent, triggerInternalHook } from "../../hooks/intern
 import {
   deriveInboundMessageHookContext,
   toInternalMessagePreprocessedContext,
+  toInternalMessageSubmitContext,
   toInternalMessageTranscribedContext,
 } from "../../hooks/message-hook-mappers.js";
 import type { FinalizedMsgContext } from "../templating.js";
@@ -46,5 +47,17 @@ export function emitPreAgentMessageHooks(params: {
       ),
     ),
     "get-reply: message:preprocessed internal hook failed",
+  );
+
+  fireAndForgetHook(
+    triggerInternalHook(
+      createInternalHookEvent(
+        "message",
+        "submit",
+        sessionKey,
+        toInternalMessageSubmitContext(canonical, params.cfg),
+      ),
+    ),
+    "get-reply: message:submit internal hook failed",
   );
 }
